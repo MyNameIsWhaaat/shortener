@@ -40,7 +40,7 @@ func (m *mockURLStore) IncrementClicks(ctx context.Context, shortCode string) er
 		return nil
 	}
 	return errNotFound
-} 
+}
 
 func (m *mockURLStore) CheckShortCodeExists(ctx context.Context, shortCode string) (bool, error) {
 	_, exists := m.urls[shortCode]
@@ -117,7 +117,9 @@ func TestURLStoreInterface(t *testing.T) {
 		CreatedAt:   time.Now(),
 		Clicks:      0,
 	}
-	store.CreateURL(ctx, url2)
+	if err := store.CreateURL(ctx, url2); err != nil {
+		t.Fatalf("Failed to create URL: %v", err)
+	}
 
 	urls, err := store.GetAllURLs(ctx, 10)
 	if err != nil {
@@ -130,6 +132,9 @@ func TestURLStoreInterface(t *testing.T) {
 
 	// Test GetAllURLs with limit
 	urls, err = store.GetAllURLs(ctx, 1)
+	if err != nil {
+		t.Errorf("GetAllURLs with limit failed: %v", err)
+	}
 	if len(urls) != 1 {
 		t.Errorf("expected 1 URL with limit=1, got %d", len(urls))
 	}

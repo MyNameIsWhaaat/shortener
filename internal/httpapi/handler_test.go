@@ -237,7 +237,9 @@ func TestRespondError(t *testing.T) {
 	}
 
 	var response map[string]string
-	json.NewDecoder(w.Body).Decode(&response)
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
 
 	if response["error"] != "test error" {
 		t.Errorf("expected error message 'test error', got %s", response["error"])

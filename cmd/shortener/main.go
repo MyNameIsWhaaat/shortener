@@ -17,56 +17,56 @@ import (
 )
 
 func main() {
-    cfg := config.Load()
-    log.Printf("Config loaded: %+v", cfg)
+	cfg := config.Load()
+	log.Printf("Config loaded: %+v", cfg)
 
-    log.Println("Attempting to connect to database...")
-    pgStore, err := store.NewPostgresStore(cfg.PostgresDSN)
-    if err != nil {
-        log.Fatalf("CRITICAL: Failed to connect to database: %v", err)
-    }
-    defer pgStore.Close()
-    log.Println("Database connected successfully")
+	log.Println("Attempting to connect to database...")
+	pgStore, err := store.NewPostgresStore(cfg.PostgresDSN)
+	if err != nil {
+		log.Fatalf("CRITICAL: Failed to connect to database: %v", err)
+	}
+	defer pgStore.Close()
+	log.Println("Database connected successfully")
 
-    var cacheClient cache.Cache
-    redisCache, err := cache.NewRedisCache(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB, cfg.CacheTTL)
-    if err != nil {
-        log.Printf("WARNING: Failed to initialize Redis cache: %v. Continuing without cache.", err)
-        cacheClient = &cache.NoOpCache{}
-    } else {
-        defer redisCache.Close()
-        cacheClient = redisCache
-    }
-    log.Println("Cache initialized successfully")
+	var cacheClient cache.Cache
+	redisCache, err := cache.NewRedisCache(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB, cfg.CacheTTL)
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize Redis cache: %v. Continuing without cache.", err)
+		cacheClient = &cache.NoOpCache{}
+	} else {
+		defer redisCache.Close()
+		cacheClient = redisCache
+	}
+	log.Println("Cache initialized successfully")
 
-    shortenerService := service.NewShortenerService(
-        pgStore,
-        cfg.BaseURL,
-        cfg.ShortCodeLength,
-        pgStore,
-        cacheClient,
-    )
-    
-    analyticsService := service.NewAnalyticsService(pgStore)
+	shortenerService := service.NewShortenerService(
+		pgStore,
+		cfg.BaseURL,
+		cfg.ShortCodeLength,
+		pgStore,
+		cacheClient,
+	)
 
-    h := handler.NewHandler(shortenerService, analyticsService)
+	analyticsService := service.NewAnalyticsService(pgStore)
 
-    server := api.NewServer(cfg, h)
+	h := handler.NewHandler(shortenerService, analyticsService)
 
-    done := make(chan os.Signal, 1)
-    signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+	server := api.NewServer(cfg, h)
 
-    go func() {
-        log.Printf("Server starting on :%s", cfg.ServerPort)
-        if err := server.Start(); err != nil {
-            log.Printf("Server error: %v", err)
-            if err != http.ErrServerClosed {
-                log.Fatalf("Failed to start server: %v", err)
-            }
-        }
-    }()
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
-    log.Println("Server is running. Press Ctrl+C to stop.")
-    <-done
-    log.Println("Shutting down server...")
+	go func() {
+		log.Printf("Server starting on :%s", cfg.ServerPort)
+		if err := server.Start(); err != nil {
+			log.Printf("Server error: %v", err)
+			if err != http.ErrServerClosed {
+				log.Fatalf("Failed to start server: %v", err)
+			}
+		}
+	}()
+
+	log.Println("Server is running. Press Ctrl+C to stop.")
+	<-done
+	log.Println("Shutting down server...")
 }

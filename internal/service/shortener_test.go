@@ -166,7 +166,9 @@ func TestGetOriginalURL(t *testing.T) {
 		OriginalURL: "https://example.com",
 		Clicks:      0,
 	}
-	urlStore.CreateURL(context.Background(), testURL)
+	if err := urlStore.CreateURL(context.Background(), testURL); err != nil {
+		t.Fatalf("Failed to create URL: %v", err)
+	}
 
 	tests := []struct {
 		name      string
@@ -219,7 +221,9 @@ func TestTrackClick(t *testing.T) {
 		OriginalURL: "https://example.com",
 		Clicks:      0,
 	}
-	urlStore.CreateURL(context.Background(), testURL)
+	if err := urlStore.CreateURL(context.Background(), testURL); err != nil {
+		t.Fatalf("Failed to create URL: %v", err)
+	}
 
 	// Track a click
 	err := service.TrackClick(context.Background(), "abc123", "Mozilla/5.0", "192.168.1.1", "https://google.com")
@@ -254,7 +258,9 @@ func TestGetAllURLs(t *testing.T) {
 			OriginalURL: "https://example.com/" + string(rune('0'+i)),
 			Clicks:      0,
 		}
-		urlStore.CreateURL(context.Background(), url)
+		if err := urlStore.CreateURL(context.Background(), url); err != nil {
+			t.Fatalf("Failed to create URL: %v", err)
+		}
 	}
 
 	urls, err := service.GetAllURLs(context.Background(), 10)

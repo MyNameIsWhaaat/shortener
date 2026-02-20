@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	urlKeyPrefix       = "url:"
+	urlKeyPrefix        = "url:"
 	popularityKeyPrefix = "pop:"
-	popularitySetKey   = "urls:popular"
-	defaultTTL         = 24 * time.Hour
+	popularitySetKey    = "urls:popular"
+	defaultTTL          = 24 * time.Hour
 )
 
 type RedisCache struct {
@@ -118,7 +118,13 @@ func (rc *RedisCache) GetPopular(ctx context.Context, limit int) ([]*domain.URL,
 	}
 
 	// Get top N short codes by popularity score
-	codes, err := rc.client.ZRevRange(ctx, popularitySetKey, 0, int64(limit-1)).Result()
+	codes, err := rc.client.ZRangeArgs(ctx, redis.ZRangeArgs{
+		Key:     popularitySetKey,
+		Start:   0,
+		Stop:    int64(limit - 1),
+		Rev:     true,
+		ByScore: false,
+	}).Result()
 	if err != nil {
 		log.Printf("Failed to get popular codes: %v", err)
 		return nil, nil // Don't fail on cache error
