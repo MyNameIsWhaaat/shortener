@@ -1,26 +1,3 @@
-// package ui
-
-// import (
-// 	"embed"
-// 	"io/fs"
-// 	"net/http"
-// )
-
-// //go:embed assets/index.html
-// var content embed.FS
-
-// func Register(mux *http.ServeMux) {
-// 	sub, err := fs.Sub(content, "assets")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	mux.Handle("/", http.FileServer(http.FS(sub)))
-
-// 	mux.HandleFunc("/analytics/", func(w http.ResponseWriter, r *http.Request) {
-// 		http.ServeFileFS(w, r, sub, "index.html")
-// 	})
-// }
 package ui
 
 import (

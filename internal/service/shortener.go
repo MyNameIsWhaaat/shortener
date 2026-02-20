@@ -11,6 +11,7 @@ import (
 
 	"time"
 
+	"github.com/MyNameIsWhaaat/shortener/internal/cache"
 	"github.com/MyNameIsWhaaat/shortener/internal/domain"
 	"github.com/MyNameIsWhaaat/shortener/internal/store"
 )
@@ -20,20 +21,22 @@ type shortenerService struct {
     baseURL  string
     codeLen  int
     analyticsStore store.AnalyticsStore
+    cache cache.Cache
 }
 
-func NewShortenerService(urlStore store.URLStore, baseURL string, codeLen int, analyticsStore store.AnalyticsStore) ShortenerService {
+func NewShortenerService(urlStore store.URLStore, baseURL string, codeLen int, analyticsStore store.AnalyticsStore, cacheClient cache.Cache) ShortenerService {
     return &shortenerService{
         urlStore: urlStore,
         baseURL:  baseURL,
         codeLen:  codeLen,
         analyticsStore: analyticsStore,
+        cache: cacheClient,
     }
 }
 
 func (s *shortenerService) GetAllURLs(ctx context.Context, limit int) ([]*domain.URL, error) {
     if limit <= 0 || limit > 100 {
-        limit = 50 // значение по умолчанию
+        limit = 50
     }
     
     urls, err := s.urlStore.GetAllURLs(ctx, limit)
@@ -41,6 +44,23 @@ func (s *shortenerService) GetAllURLs(ctx context.Context, limit int) ([]*domain
         return nil, fmt.Errorf("failed to get all urls: %w", err)
     }
     
+    return urls, nil
+}
+
+func (s *shortenerService) GetPopularURLs(ctx context.Context, limit int) ([]*domain.URL, error) {
+    if s.cache == nil {
+        return nil, fmt.Errorf("cache not available")
+    }
+
+    if limit <= 0 || limit > 100 {
+        limit = 10
+    }
+
+    urls, err := s.cache.GetPopular(ctx, limit)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get popular urls: %w", err)
+    }
+
     return urls, nil
 }
 
@@ -82,6 +102,13 @@ func (s *shortenerService) CreateShortURL(ctx context.Context, req *domain.Creat
         return nil, fmt.Errorf("failed to create url in store: %w", err)
     }
 
+    // Cache the newly created URL
+    if s.cache != nil {
+        if err := s.cache.Set(ctx, url.ShortCode, url); err != nil {
+            log.Printf("Failed to cache newly created URL: %v", err)
+        }
+    }
+
     return &domain.CreateURLResponse{
         ShortCode:   url.ShortCode,
         ShortURL:    fmt.Sprintf("%s/s/%s", s.baseURL, url.ShortCode),
@@ -93,10 +120,25 @@ func (s *shortenerService) GetOriginalURL(ctx context.Context, shortCode string)
     if shortCode == "" {
         return nil, ErrInvalidShortCode
     }
+    
+    // Try cache first
+    if s.cache != nil {
+        if cachedURL, err := s.cache.Get(ctx, shortCode); err == nil && cachedURL != nil {
+            return cachedURL, nil
+        }
+    }
 
+    // Fallback to database
     url, err := s.urlStore.GetURLByShortCode(ctx, shortCode)
     if err != nil {
         return nil, fmt.Errorf("failed to get url from store: %w", err)
+    }
+
+    // Cache the result
+    if s.cache != nil {
+        if err := s.cache.Set(ctx, shortCode, url); err != nil {
+            log.Printf("Failed to cache URL: %v", err)
+        }
     }
 
     return url, nil

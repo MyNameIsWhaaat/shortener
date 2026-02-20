@@ -3,8 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/MyNameIsWhaaat/shortener/internal/domain"
 	"github.com/MyNameIsWhaaat/shortener/internal/service"
 )
 
@@ -42,4 +44,25 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
         "status": "ok",
         "time":   time.Now().String(),
     })
+}
+
+func (h *Handler) GetPopularURLs(w http.ResponseWriter, r *http.Request) {
+    limit := 10
+    if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+        if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+            limit = l
+        }
+    }
+    
+    urls, err := h.shortenerService.GetPopularURLs(r.Context(), limit)
+    if err != nil {
+        h.respondError(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    
+    if urls == nil {
+        urls = []*domain.URL{}
+    }
+    
+    h.respond(w, urls, http.StatusOK)
 }

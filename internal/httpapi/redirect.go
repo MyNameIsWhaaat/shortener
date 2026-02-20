@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -31,7 +32,8 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
     log.Printf("RemoteAddr: %s -> IP: %s", remoteAddr, ip)
 
     go func() {
-        ctx := context.Background()
+        ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+        defer cancel()
         if err := h.shortenerService.TrackClick(ctx, shortCode, 
             r.UserAgent(), ip, r.Referer()); err != nil{
             log.Printf("Failed to track click: %v", err)

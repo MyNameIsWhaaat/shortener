@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/MyNameIsWhaaat/shortener/internal/api"
+	"github.com/MyNameIsWhaaat/shortener/internal/cache"
 	"github.com/MyNameIsWhaaat/shortener/internal/config"
 	handler "github.com/MyNameIsWhaaat/shortener/internal/httpapi"
 	"github.com/MyNameIsWhaaat/shortener/internal/service"
@@ -27,11 +28,23 @@ func main() {
     defer pgStore.Close()
     log.Println("Database connected successfully")
 
+    var cacheClient cache.Cache
+    redisCache, err := cache.NewRedisCache(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB, cfg.CacheTTL)
+    if err != nil {
+        log.Printf("WARNING: Failed to initialize Redis cache: %v. Continuing without cache.", err)
+        cacheClient = &cache.NoOpCache{}
+    } else {
+        defer redisCache.Close()
+        cacheClient = redisCache
+    }
+    log.Println("Cache initialized successfully")
+
     shortenerService := service.NewShortenerService(
         pgStore,
         cfg.BaseURL,
         cfg.ShortCodeLength,
         pgStore,
+        cacheClient,
     )
     
     analyticsService := service.NewAnalyticsService(pgStore)

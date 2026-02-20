@@ -34,6 +34,7 @@ func (r *Router) setupRoutes() {
 	{
 		api.HandleFunc("/shorten", r.handler.Shorten).Methods("POST")
 		api.HandleFunc("/urls", r.handler.GetAllURLs).Methods("GET")
+		api.HandleFunc("/urls/popular", r.handler.GetPopularURLs).Methods("GET")
 		api.HandleFunc("/analytics/{short_code}", r.handler.GetAnalytics).Methods("GET")
 		api.HandleFunc("/analytics/{short_code}/daily", r.handler.GetDailyStats).Methods("GET")
 		api.HandleFunc("/analytics/{short_code}/monthly", r.handler.GetMonthlyStats).Methods("GET")

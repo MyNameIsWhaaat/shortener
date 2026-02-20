@@ -11,6 +11,7 @@ type ShortenerService interface {
     GetOriginalURL(ctx context.Context, shortCode string) (*domain.URL, error)
     TrackClick(ctx context.Context, shortCode, userAgent, ip, referer string) error
     GetAllURLs(ctx context.Context, limit int) ([]*domain.URL, error)
+    GetPopularURLs(ctx context.Context, limit int) ([]*domain.URL, error)
 }
 
 type AnalyticsService interface {

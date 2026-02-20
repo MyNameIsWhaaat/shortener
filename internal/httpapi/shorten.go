@@ -21,7 +21,6 @@ type shortenResponse struct {
 }
 
 func (h *Handler) GetAllURLs(w http.ResponseWriter, r *http.Request) {
-    // Получаем limit из query параметра
     limit := 50
     if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
         if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {

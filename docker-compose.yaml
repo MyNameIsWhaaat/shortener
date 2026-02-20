@@ -4,10 +4,6 @@ services:
     container_name: shortener_postgres
     env_file:
       - .env
-    # environment:
-    #   POSTGRES_USER: shortener
-    #   POSTGRES_PASSWORD: shortener
-    #   POSTGRES_DB: shortener
     ports:
       - "5432:5432"
     volumes:
@@ -56,22 +52,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    # environment:
-    #   - SERVER_PORT=8080
-    #   - SERVER_TIMEOUT=30s
-    #   - BASE_URL=http://localhost:8080
-    #   - POSTGRES_HOST=postgres
-    #   - POSTGRES_PORT=5432
-    #   - POSTGRES_USER=shortener
-    #   - POSTGRES_PASSWORD=shortener
-    #   - POSTGRES_DB=shortener
-    #   - POSTGRES_SSL_MODE=disable
-    #   - REDIS_HOST=redis
-    #   - REDIS_PORT=6379
-    #   - REDIS_PASSWORD=
-    #   - REDIS_DB=0
-    #   - SHORT_CODE_LENGTH=6
-    #   - CACHE_TTL=24h
     env_file:
       - .env
     ports:
