@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shortener_postgres
+    # env_file:
+    #   - .env
+    environment:
+      POSTGRES_USER: shortener
+      POSTGRES_PASSWORD: shortener
+      POSTGRES_DB: shortener
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shortener_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shortener_network
+
+  migrate:
+    image: migrate/migrate
+    container_name: shortener_migrate
+    volumes:
+      - ./migrations:/migrations
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://shortener:shortener@postgres:5432/shortener?sslmode=disable",
+      "up"
+    ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - shortener_network
+    restart: on-failure:5
+
+  redis:
+    image: redis:7-alpine
+    container_name: shortener_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shortener_network
+
+  api:
+    build: .              
+    container_name: shortener_api
+    ports:
+      - "8080:8080"
+    # env_file:
+    #   - .env
+    environment:
+      - SERVER_PORT=8080
+      - SERVER_TIMEOUT=30s
+      - BASE_URL=http://localhost:8080
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=shortener
+      - POSTGRES_PASSWORD=shortener
+      - POSTGRES_DB=shortener
+      - POSTGRES_SSL_MODE=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - SHORT_CODE_LENGTH=6
+      - CACHE_TTL=24h
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shortener_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  shortener_network:
+    driver: bridge
