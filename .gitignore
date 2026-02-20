@@ -1,0 +1,76 @@
+# Binaries
+/bin/
+/shortener
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+*.out
+
+# Go workspace
+*.mod
+*.sum
+go.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local environment
+.env
+.env.local
+*.env
+
+# Docker
+*.pid
+*.sock
+*.port
+
+# Logs
+*.log
+/logs/
+
+# Data
+/data/
+/tmp/
+
+# Vendor (если используете)
+/vendor/
+
+# Coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Migrations (если генерируете)
+/migrations/*.go
+
+# Certificates
+*.pem
+*.crt
+*.key
+
+# Temp files
+/temp/
+/tmp/
+*.tmp
+*.temp
+
+# Dependency directories (remove this if you commit vendor)
+vendor/
