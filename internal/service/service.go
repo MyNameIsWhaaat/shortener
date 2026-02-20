@@ -10,6 +10,7 @@ type ShortenerService interface {
     CreateShortURL(ctx context.Context, req *domain.CreateURLRequest) (*domain.CreateURLResponse, error)
     GetOriginalURL(ctx context.Context, shortCode string) (*domain.URL, error)
     TrackClick(ctx context.Context, shortCode, userAgent, ip, referer string) error
+    GetAllURLs(ctx context.Context, limit int) ([]*domain.URL, error)
 }
 
 type AnalyticsService interface {

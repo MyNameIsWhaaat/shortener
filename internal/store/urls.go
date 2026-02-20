@@ -92,3 +92,37 @@ func (s *PostgresStore) CheckShortCodeExists(ctx context.Context, shortCode stri
 
     return exists, nil
 }
+
+func (s *PostgresStore) GetAllURLs(ctx context.Context, limit int) ([]*domain.URL, error) {
+    query := `
+        SELECT id, short_code, original_url, custom_alias, created_at, clicks
+        FROM urls
+        ORDER BY created_at DESC
+        LIMIT $1
+    `
+    
+    rows, err := s.db.QueryContext(ctx, query, limit)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get all urls: %w", err)
+    }
+    defer rows.Close()
+
+    var urls []*domain.URL
+    for rows.Next() {
+        var url domain.URL
+        err := rows.Scan(
+            &url.ID,
+            &url.ShortCode,
+            &url.OriginalURL,
+            &url.CustomAlias,
+            &url.CreatedAt,
+            &url.Clicks,
+        )
+        if err != nil {
+            return nil, fmt.Errorf("failed to scan url: %w", err)
+        }
+        urls = append(urls, &url)
+    }
+    
+    return urls, nil
+}

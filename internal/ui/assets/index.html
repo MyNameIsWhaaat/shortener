@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>URL Shortener · панель управления</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f6f8fa;
+            color: #1e293b;
+            line-height: 1.5;
+            padding: 32px 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+            padding: 28px 32px;
+            margin-bottom: 28px;
+            border: 1px solid rgba(226, 232, 240, 0.6);
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            background: linear-gradient(135deg, #2563eb, #0f2b5e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+
+        .subhead {
+            font-size: 15px;
+            color: #64748b;
+            margin-bottom: 28px;
+            border-left: 4px solid #2563eb;
+            padding-left: 18px;
+            background: #f8fafc;
+            border-radius: 0 8px 8px 0;
+            line-height: 1.4;
+        }
+
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h3::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 24px;
+            background: #2563eb;
+            border-radius: 20px;
+        }
+
+        .form-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px 32px;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            min-width: 200px;
+            flex: 1 1 180px;
+        }
+
+        .form-group.wide {
+            flex: 2 1 340px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 15px;
+            font-family: inherit;
+            background: white;
+            transition: 0.2s;
+            outline: none;
+            color: #1e293b;
+        }
+
+        input:hover {
+            border-color: #cbd5e1;
+        }
+
+        input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+        }
+
+        .button-row {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        button.secondary {
+            background: white;
+            color: #1e293b;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e2e8f0;
+        }
+
+        button.secondary:hover {
+            background: #f8fafc;
+            border-color: #2563eb;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+        }
+
+        .status-msg {
+            background: #f1f5f9;
+            padding: 10px 22px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid #e9eef2;
+            background: white;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            padding: 18px 16px;
+            background: #f8fafc;
+            font-weight: 600;
+            color: #334155;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #edf2f7;
+            color: #1e293b;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #fafcff;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+            font-size: 13px;
+            background: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 12px;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #dff9e6;
+            color: #0a5a3a;
+            border: 1px solid #b2e6cc;
+        }
+
+        .url-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .short-url {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .short-url:hover {
+            text-decoration: underline;
+        }
+
+        .stats-link {
+            color: #64748b;
+            text-decoration: none;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .stats-link:hover {
+            color: #2563eb;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        .result.hidden {
+            display: none;
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #475569;
+        }
+
+        .auto-refresh .dot {
+            width: 10px;
+            height: 10px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.1);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <h2>🔗 URL Shortener</h2>
+            <div class="subhead">Сокращайте длинные ссылки и собирайте аналитику переходов</div>
+
+            <h3>✂️ Создать короткую ссылку</h3>
+            <form id="shortenForm">
+                <div class="form-grid">
+                    <div class="form-group wide">
+                        <label>Длинная ссылка</label>
+                        <input id="urlInput" type="url" placeholder="https://example.com/very/long/path" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Свой код (необязательно)</label>
+                        <input id="customAlias" placeholder="my-link" />
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button type="submit">
+                        <span>🔗</span> Сократить
+                    </button>
+                    <span id="createMsg" class="status-msg">✨ Введите ссылку</span>
+                </div>
+            </form>
+
+            <div id="result" class="result hidden"></div>
+        </div>
+
+        <div class="card">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 22px;">
+                <h3 style="margin-bottom: 0;">📊 Последние ссылки</h3>
+                <div style="display: flex; gap: 16px; align-items: center;">
+                    <div class="auto-refresh">
+                        <span class="dot"></span>
+                        <span class="muted">авто 5с</span>
+                    </div>
+                    <button id="refresh" class="secondary" type="button">
+                        <span>🔄</span> Обновить
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Код</th>
+                            <th>Оригинальная ссылка</th>
+                            <th>Переходы</th>
+                            <th>Создана</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function esc(s) {
+            return String(s ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const d = new Date(dateStr);
+            return d.toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function loadUrls() {
+            try {
+                const res = await fetch('/api/urls?limit=20');
+                if (!res.ok) throw new Error('Failed to load');
+
+                const urls = await res.json();
+                const tbody = document.getElementById('tbody');
+
+                if (urls.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#64748b;">Создайте первую ссылку</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = urls.map(url => `
+            <tr>
+                <td><code>${esc(url.short_code)}</code></td>
+                <td class="url-cell" title="${esc(url.original_url)}">${esc(url.original_url)}</td>
+                <td><span class="badge success">${esc(url.clicks)}</span></td>
+                <td>${formatDate(url.created_at)}</td>
+                <td>
+                    <a href="/s/${url.short_code}" target="_blank" class="short-url">🔗</a>
+                    <a href="/api/analytics/${url.short_code}" target="_blank" class="stats-link">📊</a>
+                </td>
+            </tr>
+        `).join('');
+
+            } catch (e) {
+                console.warn('load failed', e);
+            }
+        }
+
+        document.getElementById('refresh').addEventListener('click', loadUrls);
+
+        document.getElementById('shortenForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const msg = document.getElementById('createMsg');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('result');
+
+            msg.textContent = '⏳ Создание...';
+            submitBtn.disabled = true;
+
+            const url = document.getElementById('urlInput').value;
+            const customAlias = document.getElementById('customAlias').value;
+
+            try {
+                const res = await fetch('/api/shorten', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: url,
+                        custom_alias: customAlias || undefined
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Ошибка создания');
+                }
+
+                msg.textContent = '✅ Ссылка создана!';
+
+                resultDiv.innerHTML = `
+          <p><strong>Короткая ссылка:</strong></p>
+          <p>
+            <a href="/s/${data.short_code}" target="_blank" class="short-url">
+              ${window.location.origin}/s/${data.short_code}
+            </a>
+          </p>
+          <p>
+            <a href="/api/analytics/${data.short_code}" target="_blank" class="stats-link">
+              📊 Посмотреть аналитику
+            </a>
+          </p>
+        `;
+                resultDiv.classList.remove('hidden');
+
+                document.getElementById('urlInput').value = '';
+                document.getElementById('customAlias').value = '';
+                await loadUrls();
+
+            } catch (err) {
+                msg.textContent = '❌ ' + err.message;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        loadUrls();
+        setInterval(loadUrls, 5000);
+    </script>
+</body>
+
+</html>

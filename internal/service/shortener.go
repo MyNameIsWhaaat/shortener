@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"net/url"
 	"regexp"
 
@@ -18,14 +19,29 @@ type shortenerService struct {
     urlStore store.URLStore
     baseURL  string
     codeLen  int
+    analyticsStore store.AnalyticsStore
 }
 
-func NewShortenerService(urlStore store.URLStore, baseURL string, codeLen int) ShortenerService {
+func NewShortenerService(urlStore store.URLStore, baseURL string, codeLen int, analyticsStore store.AnalyticsStore) ShortenerService {
     return &shortenerService{
         urlStore: urlStore,
         baseURL:  baseURL,
         codeLen:  codeLen,
+        analyticsStore: analyticsStore,
     }
+}
+
+func (s *shortenerService) GetAllURLs(ctx context.Context, limit int) ([]*domain.URL, error) {
+    if limit <= 0 || limit > 100 {
+        limit = 50 // значение по умолчанию
+    }
+    
+    urls, err := s.urlStore.GetAllURLs(ctx, limit)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get all urls: %w", err)
+    }
+    
+    return urls, nil
 }
 
 func (s *shortenerService) CreateShortURL(ctx context.Context, req *domain.CreateURLRequest) (*domain.CreateURLResponse, error) {
@@ -87,11 +103,26 @@ func (s *shortenerService) GetOriginalURL(ctx context.Context, shortCode string)
 }
 
 func (s *shortenerService) TrackClick(ctx context.Context, shortCode, userAgent, ip, referer string) error {
-    if err := s.urlStore.IncrementClicks(ctx, shortCode); err != nil {
-        return fmt.Errorf("failed to increment clicks: %w", err)
-    }
+    log.Printf("TrackClick for %s", shortCode)
 
-    return nil
+    if err := s.urlStore.IncrementClicks(ctx, shortCode); err != nil {
+        return err
+    }
+    
+    event := &domain.ClickEvent{
+        ShortCode: shortCode,
+        UserAgent: userAgent,
+        IP:        ip,
+        Referer:   referer,
+        CreatedAt: time.Now(),
+    }
+    
+    if s.analyticsStore == nil {
+        log.Printf("analyticsStore is nil!")
+        return nil
+    }
+    
+    return s.analyticsStore.SaveClickEvent(ctx, event)
 }
 
 func (s *shortenerService) generateShortCode() (string, error) {

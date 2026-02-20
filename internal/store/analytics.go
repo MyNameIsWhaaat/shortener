@@ -3,31 +3,33 @@ package store
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/MyNameIsWhaaat/shortener/internal/domain"
 )
 
 func (s *PostgresStore) SaveClickEvent(ctx context.Context, event *domain.ClickEvent) error {
+    log.Printf("Saving click event for %s", event.ShortCode)
+    
     query := `
         INSERT INTO click_events (short_code, user_agent, ip, referer, created_at)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id
     `
-
-    err := s.db.QueryRowContext(
-        ctx,
-        query,
+    
+    _, err := s.db.ExecContext(ctx, query,
         event.ShortCode,
         event.UserAgent,
         event.IP,
         event.Referer,
         event.CreatedAt,
-    ).Scan(&event.ID)
-
+    )
+    
     if err != nil {
-        return fmt.Errorf("failed to save click event: %w", err)
+        log.Printf("Failed to save click event: %v", err)
+        return err
     }
-
+    
+    log.Printf("Click event saved for %s", event.ShortCode)
     return nil
 }
 
@@ -43,15 +45,17 @@ func (s *PostgresStore) GetAnalytics(ctx context.Context, shortCode string) (*do
         TotalClicks:  url.Clicks,
     }
 
-    response.DailyStats, _ = s.getDailyStats(ctx, shortCode, 30)
-    response.MonthlyStats, _ = s.getMonthlyStats(ctx, shortCode, 12)
-    response.Devices, _ = s.getDeviceStats(ctx, shortCode)
-    response.RecentClicks, _ = s.getRecentClicks(ctx, shortCode, 10)
+    response.DailyStats, _ = s.GetDailyStats(ctx, shortCode, 30)
+    response.MonthlyStats, _ = s.GetMonthlyStats(ctx, shortCode, 12)
+    response.Devices, _ = s.GetDeviceStats(ctx, shortCode)
+    response.RecentClicks, _ = s.GetRecentClicks(ctx, shortCode, 10)
 
     return response, nil
 }
 
-func (s *PostgresStore) getDailyStats(ctx context.Context, shortCode string, days int) (map[string]int64, error) {
+func (s *PostgresStore) GetDailyStats(ctx context.Context, shortCode string, days int) (map[string]int64, error) {
+    log.Printf("Store GetDailyStats for %s, days=%d", shortCode, days)
+
     query := `
         SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as day, COUNT(*) 
         FROM click_events 
@@ -79,7 +83,7 @@ func (s *PostgresStore) getDailyStats(ctx context.Context, shortCode string, day
     return stats, nil
 }
 
-func (s *PostgresStore) getMonthlyStats(ctx context.Context, shortCode string, months int) (map[string]int64, error) {
+func (s *PostgresStore) GetMonthlyStats(ctx context.Context, shortCode string, months int) (map[string]int64, error) {
     query := `
         SELECT TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) 
         FROM click_events 
@@ -107,7 +111,7 @@ func (s *PostgresStore) getMonthlyStats(ctx context.Context, shortCode string, m
     return stats, nil
 }
 
-func (s *PostgresStore) getDeviceStats(ctx context.Context, shortCode string) (map[string]int64, error) {
+func (s *PostgresStore) GetDeviceStats(ctx context.Context, shortCode string) (map[string]int64, error) {
     query := `
         SELECT 
             CASE 
@@ -140,7 +144,7 @@ func (s *PostgresStore) getDeviceStats(ctx context.Context, shortCode string) (m
     return stats, nil
 }
 
-func (s *PostgresStore) getRecentClicks(ctx context.Context, shortCode string, limit int) ([]domain.ClickEvent, error) {
+func (s *PostgresStore) GetRecentClicks(ctx context.Context, shortCode string, limit int) ([]domain.ClickEvent, error) {
     query := `
         SELECT user_agent, ip, referer, created_at
         FROM click_events 

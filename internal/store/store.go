@@ -11,6 +11,7 @@ type URLStore interface {
     GetURLByShortCode(ctx context.Context, shortCode string) (*domain.URL, error)
     IncrementClicks(ctx context.Context, shortCode string) error
     CheckShortCodeExists(ctx context.Context, shortCode string) (bool, error)
+    GetAllURLs(ctx context.Context, limit int) ([]*domain.URL, error)
 }
 
 type AnalyticsStore interface {
