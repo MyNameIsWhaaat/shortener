@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/MyNameIsWhaaat/shortener/internal/domain"
+	"github.com/MyNameIsWhaaat/shortener/internal/logger"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -41,7 +41,7 @@ func NewRedisCache(redisAddr, password string, db int, ttl time.Duration) (*Redi
 		ttl = defaultTTL
 	}
 
-	log.Printf("Redis cache connected successfully (TTL: %v)", ttl)
+	logger.Info("Redis cache connected successfully", "ttl", ttl)
 	return &RedisCache{
 		client: client,
 		ttl:    ttl,
@@ -56,24 +56,24 @@ func (rc *RedisCache) Get(ctx context.Context, shortCode string) (*domain.URL, e
 		return nil, nil // Cache miss
 	}
 	if err != nil {
-		log.Printf("Redis get error: %v", err)
+		logger.Error("Redis get error", "error", err)
 		return nil, nil // Don't fail on cache error, allow fallback
 	}
 
 	var url domain.URL
 	if err := json.Unmarshal([]byte(val), &url); err != nil {
-		log.Printf("Failed to unmarshal cached URL: %v", err)
+		logger.Error("Failed to unmarshal cached URL", "error", err)
 		return nil, nil
 	}
 
 	// Increment popularity when accessed
 	go func() {
 		if err := rc.IncrementPopularity(context.Background(), shortCode); err != nil {
-			log.Printf("Failed to increment popularity: %v", err)
+			logger.Error("Failed to increment popularity", "error", err)
 		}
 	}()
 
-	log.Printf("Cache hit for %s", shortCode)
+	logger.Info("Cache hit", "short_code", shortCode)
 	return &url, nil
 }
 
@@ -89,7 +89,7 @@ func (rc *RedisCache) Set(ctx context.Context, shortCode string, url *domain.URL
 		return fmt.Errorf("failed to set cache: %w", err)
 	}
 
-	log.Printf("Cached URL %s (TTL: %v)", shortCode, rc.ttl)
+	logger.Info("Cached URL", "short_code", shortCode, "ttl", rc.ttl)
 	return nil
 }
 
@@ -104,10 +104,10 @@ func (rc *RedisCache) Invalidate(ctx context.Context, shortCode string) error {
 
 	// Remove from sorted set
 	if err := rc.client.ZRem(ctx, popularitySetKey, shortCode).Err(); err != nil {
-		log.Printf("Failed to remove from popularity set: %v", err)
+		logger.Error("Failed to remove from popularity set", "error", err)
 	}
 
-	log.Printf("Invalidated cache for %s", shortCode)
+	logger.Info("Invalidated cache", "short_code", shortCode)
 	return nil
 }
 
@@ -126,7 +126,7 @@ func (rc *RedisCache) GetPopular(ctx context.Context, limit int) ([]*domain.URL,
 		ByScore: false,
 	}).Result()
 	if err != nil {
-		log.Printf("Failed to get popular codes: %v", err)
+		logger.Error("Failed to get popular codes", "error", err)
 		return nil, nil // Don't fail on cache error
 	}
 
@@ -138,7 +138,7 @@ func (rc *RedisCache) GetPopular(ctx context.Context, limit int) ([]*domain.URL,
 	for _, code := range codes {
 		url, err := rc.Get(ctx, code)
 		if err != nil {
-			log.Printf("Failed to get popular URL %s: %v", code, err)
+			logger.Error("Failed to get popular URL", "code", code, "error", err)
 			continue
 		}
 		if url != nil {
@@ -153,7 +153,7 @@ func (rc *RedisCache) GetPopular(ctx context.Context, limit int) ([]*domain.URL,
 func (rc *RedisCache) IncrementPopularity(ctx context.Context, shortCode string) error {
 	// Increment score in sorted set
 	if err := rc.client.ZIncrBy(ctx, popularitySetKey, 1, shortCode).Err(); err != nil {
-		log.Printf("Failed to increment popularity: %v", err)
+		logger.Error("Failed to increment popularity", "error", err)
 		return nil // Don't fail on cache error
 	}
 

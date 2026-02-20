@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,32 +11,36 @@ import (
 	"github.com/MyNameIsWhaaat/shortener/internal/cache"
 	"github.com/MyNameIsWhaaat/shortener/internal/config"
 	handler "github.com/MyNameIsWhaaat/shortener/internal/httpapi"
+	"github.com/MyNameIsWhaaat/shortener/internal/logger"
 	"github.com/MyNameIsWhaaat/shortener/internal/service"
 	"github.com/MyNameIsWhaaat/shortener/internal/store"
 )
 
 func main() {
-	cfg := config.Load()
-	log.Printf("Config loaded: %+v", cfg)
+	logger.Init()
 
-	log.Println("Attempting to connect to database...")
+	cfg := config.Load()
+	logger.Info("Config loaded", "port", cfg.ServerPort, "base_url", cfg.BaseURL)
+
+	logger.Info("Attempting to connect to database")
 	pgStore, err := store.NewPostgresStore(cfg.PostgresDSN)
 	if err != nil {
-		log.Fatalf("CRITICAL: Failed to connect to database: %v", err)
+		logger.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer pgStore.Close()
-	log.Println("Database connected successfully")
+	logger.Info("Database connected successfully")
 
 	var cacheClient cache.Cache
 	redisCache, err := cache.NewRedisCache(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB, cfg.CacheTTL)
 	if err != nil {
-		log.Printf("WARNING: Failed to initialize Redis cache: %v. Continuing without cache.", err)
+		logger.Warn("Failed to initialize Redis cache, continuing without cache", "error", err)
 		cacheClient = &cache.NoOpCache{}
 	} else {
 		defer redisCache.Close()
 		cacheClient = redisCache
+		logger.Info("Redis cache initialized successfully")
 	}
-	log.Println("Cache initialized successfully")
 
 	shortenerService := service.NewShortenerService(
 		pgStore,
@@ -57,16 +60,17 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Server starting on :%s", cfg.ServerPort)
+		logger.Info("Server starting", "port", cfg.ServerPort)
 		if err := server.Start(); err != nil {
-			log.Printf("Server error: %v", err)
+			logger.Error("Server error", "error", err)
 			if err != http.ErrServerClosed {
-				log.Fatalf("Failed to start server: %v", err)
+				os.Exit(1)
 			}
 		}
 	}()
 
-	log.Println("Server is running. Press Ctrl+C to stop.")
+	logger.Info("Server is running. Press Ctrl+C to stop.")
 	<-done
-	log.Println("Shutting down server...")
+	logger.Info("Shutting down server")
 }
+

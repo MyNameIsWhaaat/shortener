@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"net/url"
 	"regexp"
 
@@ -13,6 +12,7 @@ import (
 
 	"github.com/MyNameIsWhaaat/shortener/internal/cache"
 	"github.com/MyNameIsWhaaat/shortener/internal/domain"
+	"github.com/MyNameIsWhaaat/shortener/internal/logger"
 	"github.com/MyNameIsWhaaat/shortener/internal/store"
 )
 
@@ -105,7 +105,7 @@ func (s *shortenerService) CreateShortURL(ctx context.Context, req *domain.Creat
 	// Cache the newly created URL
 	if s.cache != nil {
 		if err := s.cache.Set(ctx, url.ShortCode, url); err != nil {
-			log.Printf("Failed to cache newly created URL: %v", err)
+			logger.Error("Failed to cache newly created URL", "error", err)
 		}
 	}
 
@@ -137,7 +137,7 @@ func (s *shortenerService) GetOriginalURL(ctx context.Context, shortCode string)
 	// Cache the result
 	if s.cache != nil {
 		if err := s.cache.Set(ctx, shortCode, url); err != nil {
-			log.Printf("Failed to cache URL: %v", err)
+			logger.Error("Failed to cache URL", "error", err)
 		}
 	}
 
@@ -145,7 +145,7 @@ func (s *shortenerService) GetOriginalURL(ctx context.Context, shortCode string)
 }
 
 func (s *shortenerService) TrackClick(ctx context.Context, shortCode, userAgent, ip, referer string) error {
-	log.Printf("TrackClick for %s", shortCode)
+	logger.Info("TrackClick", "short_code", shortCode)
 
 	if err := s.urlStore.IncrementClicks(ctx, shortCode); err != nil {
 		return err
@@ -160,7 +160,7 @@ func (s *shortenerService) TrackClick(ctx context.Context, shortCode, userAgent,
 	}
 
 	if s.analyticsStore == nil {
-		log.Printf("analyticsStore is nil!")
+		logger.Error("analyticsStore is nil")
 		return nil
 	}
 

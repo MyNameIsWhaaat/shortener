@@ -2,11 +2,11 @@ package handler
 
 import (
 	"context"
-	"log"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/MyNameIsWhaaat/shortener/internal/logger"
 	"github.com/gorilla/mux"
 )
 
@@ -14,11 +14,11 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	shortCode := vars["short_code"]
 
-	log.Printf("Redirect request for short_code: %s", shortCode)
+	logger.Info("Redirect request", "short_code", shortCode)
 
 	url, err := h.shortenerService.GetOriginalURL(r.Context(), shortCode)
 	if err != nil {
-		log.Printf("URL not found: %v", err)
+		logger.Error("URL not found", "short_code", shortCode, "error", err)
 		http.Error(w, "URL not found", http.StatusNotFound)
 		return
 	}
@@ -29,19 +29,19 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 		ip = host
 	}
 
-	log.Printf("RemoteAddr: %s -> IP: %s", remoteAddr, ip)
+	logger.Info("Request IP", "remote_addr", remoteAddr, "ip", ip)
 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := h.shortenerService.TrackClick(ctx, shortCode,
 			r.UserAgent(), ip, r.Referer()); err != nil {
-			log.Printf("Failed to track click: %v", err)
+			logger.Error("Failed to track click", "short_code", shortCode, "error", err)
 		} else {
-			log.Printf("Click tracked successfully for %s", shortCode)
+			logger.Info("Click tracked successfully", "short_code", shortCode)
 		}
 	}()
 
-	log.Printf("Redirecting to %s", url.OriginalURL)
+	logger.Info("Redirecting", "short_code", shortCode, "url", url.OriginalURL)
 	http.Redirect(w, r, url.OriginalURL, http.StatusFound)
 }

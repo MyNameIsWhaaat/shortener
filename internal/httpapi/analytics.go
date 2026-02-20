@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 
 	"strconv"
 
+	"github.com/MyNameIsWhaaat/shortener/internal/logger"
 	"github.com/MyNameIsWhaaat/shortener/internal/service"
 	"github.com/gorilla/mux"
 )
@@ -36,7 +36,7 @@ func (h *Handler) GetDailyStats(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	shortCode := vars["short_code"]
 
-	log.Printf("GetDailyStats called for %s", shortCode)
+	logger.Info("GetDailyStats called", "short_code", shortCode)
 
 	days := 30
 	if daysStr := r.URL.Query().Get("days"); daysStr != "" {
@@ -62,7 +62,7 @@ func (h *Handler) GetMonthlyStats(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	shortCode := vars["short_code"]
 
-	log.Printf("GetMonthlyStats called for %s", shortCode)
+	logger.Info("GetMonthlyStats called", "short_code", shortCode)
 
 	days := 30
 	if daysStr := r.URL.Query().Get("days"); daysStr != "" {
@@ -88,7 +88,7 @@ func (h *Handler) GetDeviceStats(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	shortCode := vars["short_code"]
 
-	log.Printf("GetDeviceStats called for %s", shortCode)
+	logger.Info("GetDeviceStats called", "short_code", shortCode)
 
 	stats, err := h.analyticsService.GetDeviceStats(r.Context(), shortCode)
 	if err != nil {

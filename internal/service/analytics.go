@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/MyNameIsWhaaat/shortener/internal/domain"
+	"github.com/MyNameIsWhaaat/shortener/internal/logger"
 	"github.com/MyNameIsWhaaat/shortener/internal/store"
 )
 
@@ -33,7 +33,7 @@ func (s *analyticsService) GetAnalytics(ctx context.Context, shortCode string) (
 }
 
 func (s *analyticsService) GetDailyStats(ctx context.Context, shortCode string, days int) (map[string]int64, error) {
-	log.Printf("Service GetDailyStats for %s, days=%d", shortCode, days)
+	logger.Info("GetDailyStats", "short_code", shortCode, "days", days)
 
 	if shortCode == "" {
 		return nil, ErrInvalidShortCode
@@ -73,7 +73,7 @@ func (s *analyticsService) GetDeviceStats(ctx context.Context, shortCode string)
 		return nil, ErrInvalidShortCode
 	}
 
-	log.Printf("Service GetDeviceStats for %s", shortCode)
+	logger.Info("GetDeviceStats", "short_code", shortCode)
 
 	stats, err := s.analyticsStore.GetDeviceStats(ctx, shortCode)
 	if err != nil {

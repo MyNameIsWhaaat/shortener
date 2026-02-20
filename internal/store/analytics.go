@@ -3,13 +3,13 @@ package store
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/MyNameIsWhaaat/shortener/internal/domain"
+	"github.com/MyNameIsWhaaat/shortener/internal/logger"
 )
 
 func (s *PostgresStore) SaveClickEvent(ctx context.Context, event *domain.ClickEvent) error {
-	log.Printf("Saving click event for %s", event.ShortCode)
+	logger.Info("Saving click event", "short_code", event.ShortCode)
 
 	query := `
         INSERT INTO click_events (short_code, user_agent, ip, referer, created_at)
@@ -25,11 +25,11 @@ func (s *PostgresStore) SaveClickEvent(ctx context.Context, event *domain.ClickE
 	)
 
 	if err != nil {
-		log.Printf("Failed to save click event: %v", err)
+		logger.Error("Failed to save click event", "error", err)
 		return err
 	}
 
-	log.Printf("Click event saved for %s", event.ShortCode)
+	logger.Info("Click event saved", "short_code", event.ShortCode)
 	return nil
 }
 
@@ -55,7 +55,7 @@ func (s *PostgresStore) GetAnalytics(ctx context.Context, shortCode string) (*do
 }
 
 func (s *PostgresStore) GetDailyStats(ctx context.Context, shortCode string, days int) (map[string]int64, error) {
-	log.Printf("Store GetDailyStats for %s, days=%d", shortCode, days)
+	logger.Info("GetDailyStats", "short_code", shortCode, "days", days)
 
 	query := `
         SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as day, COUNT(*) 
