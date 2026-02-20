@@ -319,6 +319,135 @@
                 transform: scale(1);
             }
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            width: 90vw;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #f1f5f9;
+        }
+
+        .analytics-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .analytics-header h2 {
+            margin: 0;
+            font-size: 32px;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .analytics-stat {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid #bae6fd;
+        }
+
+        .analytics-stat h4 {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #0369a1;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .analytics-stat .big-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0c4a6e;
+        }
+
+        .stats-section {
+            margin-bottom: 40px;
+        }
+
+        .stats-section h3 {
+            margin-bottom: 16px;
+        }
+
+        .stats-chart {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-item {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-item-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .stat-item-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
     </style>
 </head>
 
@@ -384,6 +513,59 @@
         </div>
     </div>
 
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeAnalytics()">×</button>
+            <div class="analytics-header">
+                <h2>📊 Аналитика</h2>
+                <div id="shortCodeDisplay" style="font-size: 14px; color: #64748b;"></div>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="analytics-stat">
+                    <h4>Всего переходов</h4>
+                    <div class="big-number" id="totalClicks">0</div>
+                </div>
+                <div class="analytics-stat">
+                    <h4>Оригинальная ссылка</h4>
+                    <div style="font-size: 14px; color: #0c4a6e; word-break: break-all; font-weight: 500;" id="originalUrl">—</div>
+                </div>
+                <div class="analytics-stat">
+                    <h4>Создана</h4>
+                    <div style="font-size: 14px; color: #0c4a6e;" id="createdDate">—</div>
+                </div>
+            </div>
+
+            <div class="stats-section" id="deviceStatsSection" style="display:none;">
+                <h3>📱 По устройствам</h3>
+                <div class="stats-chart" id="deviceStats"></div>
+            </div>
+
+            <div class="stats-section" id="dailyStatsSection" style="display:none;">
+                <h3>📈 По дням (последние 30 дней)</h3>
+                <div class="stats-chart" id="dailyStats"></div>
+            </div>
+
+            <div class="stats-section" id="recentClicksSection" style="display:none;">
+                <h3>⏰ Последние переходы</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User Agent</th>
+                                <th>IP</th>
+                                <th>Referer</th>
+                                <th>Время</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentClicksTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function esc(s) {
             return String(s ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -391,9 +573,99 @@
 
         function formatDate(dateStr) {
             if (!dateStr) return '—';
-            const d = new Date(dateStr);
-            return d.toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return '—';
+                return d.toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch (e) {
+                console.warn('Date format error:', dateStr, e);
+                return '—';
+            }
         }
+
+        async function openAnalytics(shortCode) {
+            const modal = document.getElementById('analyticsModal');
+            modal.classList.add('active');
+
+            try {
+                document.getElementById('shortCodeDisplay').textContent = shortCode;
+                const res = await fetch(`/api/analytics/${shortCode}`);
+                const data = await res.json();
+
+                // Main stats
+                document.getElementById('totalClicks').textContent = esc(data.total_clicks || 0);
+                document.getElementById('originalUrl').textContent = esc(data.original_url || '—');
+                document.getElementById('createdDate').textContent = formatDate(data.created_at || null);
+
+                // Device stats
+                if (data.devices && Object.keys(data.devices).length > 0) {
+                    document.getElementById('deviceStatsSection').style.display = 'block';
+                    const deviceHtml = Object.entries(data.devices)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([device, count]) => `
+                            <div class="stat-item">
+                                <div class="stat-item-label">${esc(device)}</div>
+                                <div class="stat-item-value">${esc(count)}</div>
+                            </div>
+                        `).join('');
+                    document.getElementById('deviceStats').innerHTML = deviceHtml;
+                }
+
+                // Daily stats
+                if (data.daily_stats && Object.keys(data.daily_stats).length > 0) {
+                    document.getElementById('dailyStatsSection').style.display = 'block';
+                    const dailyHtml = Object.entries(data.daily_stats)
+                        .sort()
+                        .slice(-30)
+                        .map(([date, count]) => `
+                            <div class="stat-item">
+                                <div class="stat-item-label">${esc(date)}</div>
+                                <div class="stat-item-value">${esc(count)}</div>
+                            </div>
+                        `).join('');
+                    document.getElementById('dailyStats').innerHTML = dailyHtml;
+                }
+
+                // Recent clicks
+                if (data.recent_clicks && data.recent_clicks.length > 0) {
+                    document.getElementById('recentClicksSection').style.display = 'block';
+                    const clicksHtml = data.recent_clicks
+                        .slice(0, 20)
+                        .map(click => `
+                            <tr>
+                                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${esc(click.user_agent)}">${esc(click.user_agent || '—')}</td>
+                                <td>${esc(click.ip || '—')}</td>
+                                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${esc(click.referer)}">${esc(click.referer || '—')}</td>
+                                <td>${formatDate(click.created_at)}</td>
+                            </tr>
+                        `).join('');
+                    document.getElementById('recentClicksTable').innerHTML = clicksHtml;
+                }
+            } catch (e) {
+                console.error('Failed to load analytics', e);
+                alert('Ошибка загрузки аналитики');
+                closeAnalytics();
+            }
+        }
+
+        function closeAnalytics() {
+            const modal = document.getElementById('analyticsModal');
+            modal.classList.remove('active');
+        }
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeAnalytics();
+            }
+        });
+
+        // Close modal on background click
+        document.getElementById('analyticsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'analyticsModal') {
+                closeAnalytics();
+            }
+        });
 
         async function loadUrls() {
             try {
@@ -416,7 +688,7 @@
                 <td>${formatDate(url.created_at)}</td>
                 <td>
                     <a href="/s/${url.short_code}" target="_blank" class="short-url">🔗</a>
-                    <a href="/api/analytics/${url.short_code}" target="_blank" class="stats-link">📊</a>
+                    <a href="#" onclick="openAnalytics('${url.short_code}'); return false;" class="stats-link">📊</a>
                 </td>
             </tr>
         `).join('');
@@ -467,7 +739,7 @@
             </a>
           </p>
           <p>
-            <a href="/api/analytics/${data.short_code}" target="_blank" class="stats-link">
+            <a href="#" onclick="openAnalytics('${data.short_code}'); return false;" class="stats-link">
               📊 Посмотреть аналитику
             </a>
           </p>

@@ -42,6 +42,7 @@ func (s *PostgresStore) GetAnalytics(ctx context.Context, shortCode string) (*do
     response := &domain.AnalyticsResponse{
         ShortCode:    url.ShortCode,
         OriginalURL:  url.OriginalURL,
+        CreatedAt:    url.CreatedAt,
         TotalClicks:  url.Clicks,
     }
 

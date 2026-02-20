@@ -1,7 +1,7 @@
 package domain
 
 import (
-    "time"
+	"time"
 )
 
 type ClickEvent struct {
@@ -16,6 +16,7 @@ type ClickEvent struct {
 type AnalyticsResponse struct {
     ShortCode    string                `json:"short_code"`
     OriginalURL  string                `json:"original_url"`
+    CreatedAt    time.Time             `json:"created_at"`
     TotalClicks  int64                 `json:"total_clicks"`
     DailyStats   map[string]int64       `json:"daily_stats"`
     MonthlyStats map[string]int64       `json:"monthly_stats"`
