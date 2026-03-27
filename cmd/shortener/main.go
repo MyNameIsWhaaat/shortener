@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
-
 	"syscall"
+	"time"
 
 	"github.com/MyNameIsWhaaat/shortener/internal/api"
 	"github.com/MyNameIsWhaaat/shortener/internal/cache"
@@ -51,26 +53,39 @@ func main() {
 	)
 
 	analyticsService := service.NewAnalyticsService(pgStore)
-
 	h := handler.NewHandler(shortenerService, analyticsService)
-
 	server := api.NewServer(cfg, h)
 
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+	sigCh := make(chan os.Signal, 1)
+	errCh := make(chan error, 1)
+
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(sigCh)
 
 	go func() {
 		logger.Info("Server starting", "port", cfg.ServerPort)
-		if err := server.Start(); err != nil {
-			logger.Error("Server error", "error", err)
-			if err != http.ErrServerClosed {
-				os.Exit(1)
-			}
-		}
+		errCh <- server.Start()
 	}()
 
 	logger.Info("Server is running. Press Ctrl+C to stop.")
-	<-done
-	logger.Info("Shutting down server")
-}
 
+	select {
+	case sig := <-sigCh:
+		logger.Info("Shutdown signal received", "signal", sig.String())
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := server.Stop(ctx); err != nil {
+			logger.Error("Failed to stop server gracefully", "error", err)
+		}
+
+	case err := <-errCh:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Server stopped with error", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	logger.Info("Application stopped")
+}

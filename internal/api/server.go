@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"net/http"
-
 	"time"
 
 	"github.com/MyNameIsWhaaat/shortener/internal/config"
@@ -22,8 +21,8 @@ func NewServer(cfg *config.Config, h *handler.Handler) *Server {
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.ServerPort,
 		Handler:      router.GetHandler(),
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  cfg.ServerTimeout,
+		WriteTimeout: cfg.ServerTimeout,
 		IdleTimeout:  60 * time.Second,
 	}
 

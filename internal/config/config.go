@@ -2,11 +2,11 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/MyNameIsWhaaat/shortener/internal/logger"
 	"github.com/joho/godotenv"
 )
 
@@ -38,7 +38,7 @@ type Config struct {
 
 func Load() *Config {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
+		logger.Warn("No .env file found, using environment variables")
 	}
 
 	cfg := &Config{
@@ -65,7 +65,14 @@ func Load() *Config {
 		RateLimit:        getEnvAsInt("RATE_LIMIT", 100),
 	}
 
-	cfg.PostgresDSN = fmt.Sprintf(
+	cfg.PostgresDSN = buildPostgresDSN(cfg)
+	cfg.RedisAddr = buildRedisAddr(cfg)
+
+	return cfg
+}
+
+func buildPostgresDSN(cfg *Config) string {
+	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.PostgresUser,
 		cfg.PostgresPassword,
@@ -74,10 +81,10 @@ func Load() *Config {
 		cfg.PostgresDB,
 		cfg.PostgresSSLMode,
 	)
+}
 
-	cfg.RedisAddr = fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
-
-	return cfg
+func buildRedisAddr(cfg *Config) string {
+	return fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
 }
 
 func getEnv(key, defaultValue string) string {
