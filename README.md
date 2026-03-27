@@ -26,8 +26,7 @@ cd shortener
 docker-compose up --build
 ```
 
-Приложение доступно на http://localhost:8080
-
+Приложение доступно на http://localhost:8080/ui/
 ### Локально
 
 1. Установка зависимостей:
@@ -118,7 +117,7 @@ go run ./cmd/shortener/main.go
 
 ## Веб-интерфейс
 
-Доступен на http://localhost:8080/
+Доступен на http://localhost:8080/ui/
 
 Функциональность:
 - Форма для создания новых сокращённых ссылок
