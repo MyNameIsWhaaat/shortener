@@ -1,11 +1,14 @@
 package store
 
 import (
-	"github.com/lib/pq"
+	"errors"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func isUniqueViolation(err error) bool {
-	if pgErr, ok := err.(*pq.Error); ok {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
 		return pgErr.Code == "23505"
 	}
 	return false

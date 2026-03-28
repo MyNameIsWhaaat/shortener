@@ -9,6 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	pgxdriver "github.com/wb-go/wbf/dbpg/pgx-driver"
+	wbflogger "github.com/wb-go/wbf/logger"
+
 	"github.com/MyNameIsWhaaat/shortener/internal/api"
 	"github.com/MyNameIsWhaaat/shortener/internal/cache"
 	"github.com/MyNameIsWhaaat/shortener/internal/config"
@@ -24,13 +27,33 @@ func main() {
 	cfg := config.Load()
 	logger.Info("Config loaded", "port", cfg.ServerPort, "base_url", cfg.BaseURL)
 
+	appLogger, err := wbflogger.InitLogger(
+		wbflogger.ZerologEngine,
+		"shortener",
+		"dev",
+	)
+	if err != nil {
+		logger.Error("Failed to init wbf logger", "error", err)
+		os.Exit(1)
+	}
+
 	logger.Info("Attempting to connect to database")
-	pgStore, err := store.NewPostgresStore(cfg.PostgresDSN)
+	pg, err := pgxdriver.New(cfg.PostgresDSN, appLogger)
 	if err != nil {
 		logger.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
 	}
-	defer pgStore.Close()
+	defer pg.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := pg.Ping(ctx); err != nil {
+		logger.Error("Failed to ping database", "error", err)
+		os.Exit(1)
+	}
+
+	pgStore := store.NewPostgresStoreFromPool(pg.Pool)
 	logger.Info("Database connected successfully")
 
 	var cacheClient cache.Cache

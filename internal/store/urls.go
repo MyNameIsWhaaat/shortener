@@ -2,10 +2,10 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/MyNameIsWhaaat/shortener/internal/domain"
+	"github.com/jackc/pgx/v5"
 )
 
 func (s *PostgresStore) CreateURL(ctx context.Context, url *domain.URL) error {
@@ -15,7 +15,7 @@ func (s *PostgresStore) CreateURL(ctx context.Context, url *domain.URL) error {
         RETURNING id
     `
 
-	err := s.db.QueryRowContext(
+	err := s.db.QueryRow(
 		ctx,
 		query,
 		url.ShortCode,
@@ -43,7 +43,7 @@ func (s *PostgresStore) GetURLByShortCode(ctx context.Context, shortCode string)
     `
 
 	var url domain.URL
-	err := s.db.QueryRowContext(ctx, query, shortCode).Scan(
+	err := s.db.QueryRow(ctx, query, shortCode).Scan(
 		&url.ID,
 		&url.ShortCode,
 		&url.OriginalURL,
@@ -52,7 +52,7 @@ func (s *PostgresStore) GetURLByShortCode(ctx context.Context, shortCode string)
 		&url.Clicks,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, domain.ErrURLNotFound
 	}
 	if err != nil {
@@ -65,16 +65,12 @@ func (s *PostgresStore) GetURLByShortCode(ctx context.Context, shortCode string)
 func (s *PostgresStore) IncrementClicks(ctx context.Context, shortCode string) error {
 	query := `UPDATE urls SET clicks = clicks + 1 WHERE short_code = $1`
 
-	result, err := s.db.ExecContext(ctx, query, shortCode)
+	tag, err := s.db.Exec(ctx, query, shortCode)
 	if err != nil {
 		return fmt.Errorf("failed to increment clicks: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-	if rows == 0 {
+	if tag.RowsAffected() == 0 {
 		return domain.ErrURLNotFound
 	}
 
@@ -85,7 +81,7 @@ func (s *PostgresStore) CheckShortCodeExists(ctx context.Context, shortCode stri
 	query := `SELECT EXISTS(SELECT 1 FROM urls WHERE short_code = $1)`
 
 	var exists bool
-	err := s.db.QueryRowContext(ctx, query, shortCode).Scan(&exists)
+	err := s.db.QueryRow(ctx, query, shortCode).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("failed to check short code: %w", err)
 	}
@@ -101,7 +97,7 @@ func (s *PostgresStore) GetAllURLs(ctx context.Context, limit int) ([]*domain.UR
         LIMIT $1
     `
 
-	rows, err := s.db.QueryContext(ctx, query, limit)
+	rows, err := s.db.Query(ctx, query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all urls: %w", err)
 	}
@@ -110,18 +106,21 @@ func (s *PostgresStore) GetAllURLs(ctx context.Context, limit int) ([]*domain.UR
 	var urls []*domain.URL
 	for rows.Next() {
 		var url domain.URL
-		err := rows.Scan(
+		if err := rows.Scan(
 			&url.ID,
 			&url.ShortCode,
 			&url.OriginalURL,
 			&url.CustomAlias,
 			&url.CreatedAt,
 			&url.Clicks,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, fmt.Errorf("failed to scan url: %w", err)
 		}
 		urls = append(urls, &url)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
 	}
 
 	return urls, nil

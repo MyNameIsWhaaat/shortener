@@ -2,41 +2,51 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgresStore struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
 func NewPostgresStore(connString string) (*PostgresStore, error) {
-	db, err := sql.Open("postgres", connString)
+	cfg, err := pgxpool.ParseConfig(connString)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to parse postgres config: %w", err)
 	}
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	cfg.MaxConns = 25
+	cfg.MinConns = 5
+	cfg.MaxConnLifetime = 5 * time.Minute
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
+	db, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pgx pool: %w", err)
+	}
+
+	if err := db.Ping(ctx); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	return &PostgresStore{db: db}, nil
 }
 
+func NewPostgresStoreFromPool(pool *pgxpool.Pool) *PostgresStore {
+	return &PostgresStore{db: pool}
+}
+
 func (s *PostgresStore) Ping(ctx context.Context) error {
-	return s.db.PingContext(ctx)
+	return s.db.Ping(ctx)
 }
 
 func (s *PostgresStore) Close() error {
-	return s.db.Close()
+	s.db.Close()
+	return nil
 }
